@@ -6,13 +6,22 @@
     <title>Books Collection</title>
     <link rel="stylesheet" href="/stylesheets/new-styles.css">
     <link rel="stylesheet" href="/stylesheets/book-covers.css">
+    <link rel="stylesheet" href="/stylesheets/modal.css">
+    <link rel="stylesheet" href="/stylesheets/nav.css">
+    <link rel="stylesheet" href="/stylesheets/form.css">
+    <link rel="stylesheet" href="/stylesheets/sort.css">
 </head>
 <body>
     <nav class="nav-container">
         <div class="nav-bar">
             <a href="/" class="logo">My Journey</a>
             <div class="nav-links">
-                <button id="searchBtn" class="nav-button">Search</button>
+                <div class="search-container">
+                    <button id="searchBtn" class="nav-button">Search</button>
+                    <div id="searchBox" class="search-box" style="display: none;">
+                        <input type="text" id="searchInput" placeholder="Search books...">
+                    </div>
+                </div>
                 <button id="addBookBtn" class="nav-button">Add to Journey</button>
             </div>
         </div>
@@ -72,19 +81,28 @@
         <h1 class="collection-title">God Named Devil</h1>
         <h2 class="collection-subtitle">New series collection by Doberboy</h2>
 
+        <div class="sort-controls">
+            <div class="sort-group">
+                <label>Sort by:</label>
+                <button id="sortByRate" class="sort-btn">Rating <span class="sort-arrow">↓</span></button>
+                <button id="sortByDate" class="sort-btn">Date Read <span class="sort-arrow">↓</span></button>
+            </div>
+        </div>
+
     <section id="browse" class="browse-section">
         <div class="books-exhibition">
             <% books.forEach((book, index) => { %>
-                <div class="book-entry" onclick="showBookDetails(this)" data-book='<%= JSON.stringify(book) %>'>
+                <div class="book-entry" onclick="showBookDetails(this)" data-book='<%= JSON.stringify({...book, cover_image: book.cover_image || `https://source.unsplash.com/800x1200/?book,dark,${encodeURIComponent(book.title.split(' ')[0])}` }) %>'>
                     <div class="book-number"><%= String(index + 1).padStart(2, '0') %></div>
                     <div class="book-content">
                         <h2 class="book-title"><%= book.title %></h2>
                         <div class="book-layout">
                             <div class="book-image">
                                 <img 
-                                    src="https://covers.openlibrary.org/b/title/<%= book.title.toLowerCase().replace(/[^a-z0-9]/g, '+') %>-L.jpg" 
+                                    src="<%= book.cover_image || `https://source.unsplash.com/800x1200/?book,dark,mystical,${encodeURIComponent(book.title.split(' ')[0])}` %>"
                                     alt="Cover of <%= book.title %>"
-                                    onerror="this.onerror=null; this.style.display='none'; this.nextElementSibling.style.display='flex';"
+                                    loading="lazy"
+                                    onerror="this.onerror=null; this.src=`https://source.unsplash.com/800x1200/?book,fantasy`; this.onerror=function(){this.style.display='none'; this.nextElementSibling.style.display='flex';}"
                                 >
                                 <div class="cover-placeholder" style="display: none;">
                                     <div class="cover-content">
@@ -115,8 +133,8 @@
                 <div id="bookDetailsContent">
                     <!-- Content will be populated by JavaScript -->
                 </div>
-                <div class="modal-actions">
-                    <button class="edit-btn">Edit</button>
+                <div id="modalActions" class="modal-actions">
+                    <button type="button" id="editButton" class="edit-btn">Edit</button>
                     <form action="/delete" method="POST" style="display: inline;">
                         <input type="hidden" name="bookId" id="deleteBookId">
                         <button type="submit" class="delete-btn">Delete</button>
@@ -127,6 +145,74 @@
     </main>
 
     <script>
+        // Sorting functionality
+        const sortByRateBtn = document.getElementById('sortByRate');
+        const sortByDateBtn = document.getElementById('sortByDate');
+        const booksContainer = document.querySelector('.books-exhibition');
+        
+        let rateSortDirection = 'desc';
+        let dateSortDirection = 'desc';
+
+        function getSortedBooks() {
+            return Array.from(document.querySelectorAll('.book-entry')).map(entry => {
+                const bookData = JSON.parse(entry.getAttribute('data-book'));
+                return {
+                    element: entry,
+                    rate: parseFloat(bookData.rate) || 0,
+                    date: bookData.date ? new Date(bookData.date) : new Date(0)
+                };
+            });
+        }
+
+        function updateSortArrow(button, direction) {
+            const arrow = button.querySelector('.sort-arrow');
+            arrow.textContent = direction === 'asc' ? '↑' : '↓';
+        }
+
+        sortByRateBtn.addEventListener('click', () => {
+            const books = getSortedBooks();
+            rateSortDirection = rateSortDirection === 'asc' ? 'desc' : 'asc';
+            
+            books.sort((a, b) => {
+                return rateSortDirection === 'asc' 
+                    ? a.rate - b.rate 
+                    : b.rate - a.rate;
+            });
+
+            updateSortArrow(sortByRateBtn, rateSortDirection);
+            
+            // Reset date sort arrow
+            dateSortDirection = 'desc';
+            updateSortArrow(sortByDateBtn, 'desc');
+            
+            // Reorder elements
+            books.forEach(book => {
+                booksContainer.appendChild(book.element);
+            });
+        });
+
+        sortByDateBtn.addEventListener('click', () => {
+            const books = getSortedBooks();
+            dateSortDirection = dateSortDirection === 'asc' ? 'desc' : 'asc';
+            
+            books.sort((a, b) => {
+                return dateSortDirection === 'asc' 
+                    ? a.date - b.date 
+                    : b.date - a.date;
+            });
+
+            updateSortArrow(sortByDateBtn, dateSortDirection);
+            
+            // Reset rate sort arrow
+            rateSortDirection = 'desc';
+            updateSortArrow(sortByRateBtn, 'desc');
+            
+            // Reorder elements
+            books.forEach(book => {
+                booksContainer.appendChild(book.element);
+            });
+        });
+
         // Google Books API integration
         const searchBookApi = document.getElementById('searchBookApi');
         const searchResults = document.getElementById('searchResults');
@@ -176,25 +262,62 @@
             addBookModal.style.display = "block";
         }
 
+        let currentBook = null; // Variable to store the current book data
+        const editButton = document.getElementById('editButton');
+        const modalActions = document.getElementById('modalActions');
+        const bookDetailsContent = document.getElementById('bookDetailsContent');
+
+        // Add click event listener to edit button
+        editButton.addEventListener('click', function() {
+            if (currentBook) {
+                showEditForm(currentBook);
+            }
+        });
+
         function showBookDetails(element) {
             const book = JSON.parse(element.getAttribute('data-book'));
+            currentBook = book; // Store the book data
+            console.log('Book data:', book); // Debug log
             const content = document.getElementById('bookDetailsContent');
+            const defaultCoverUrl = `https://source.unsplash.com/800x1200/?book,dark,${encodeURIComponent(book.title.split(' ')[0])}`;
+            console.log('Default cover URL:', defaultCoverUrl); // Debug log
+            // Create the modal content
+            // Set the modal content
             content.innerHTML = `
                 <div class="book-detail-header">
-                    <img src="${book.cover_image || ''}" alt="Cover of ${book.title}">
+                    <div class="book-image-container">
+                        <img 
+                            src="${book.cover_image || defaultCoverUrl}" 
+                            alt="Cover of ${book.title}"
+                            style="max-width: 300px; height: auto;"
+                            onerror="if (!this.retryCount) { this.retryCount = 1; this.src='https://source.unsplash.com/800x1200/?book,fantasy'; } else { this.style.display='none'; this.nextElementSibling.style.display='flex'; }"
+                        >
+                        <div class="cover-placeholder" style="display: none;">
+                            <div class="cover-content">
+                                <div class="book-icon">📚</div>
+                                <h3>${book.title}</h3>
+                                <p class="author">${book.author || 'Unknown Author'}</p>
+                            </div>
+                        </div>
+                    </div>
                     <div class="book-info">
                         <h2>${book.title}</h2>
-                        <p class="author">${book.author}</p>
-                        <p class="rating">Rating: ${book.rate}/10</p>
-                        <p class="date">Read on: ${new Date(book.date).toLocaleDateString()}</p>
+                        <p class="author">${book.author || 'Unknown Author'}</p>
+                        ${book.rate ? `<p class="rating">Rating: ${book.rate}/10</p>` : ''}
+                        ${book.date ? `<p class="date">Read on: ${new Date(book.date).toLocaleDateString()}</p>` : ''}
                     </div>
                 </div>
-                ${book.description ? `<div class="book-description">${book.description}</div>` : ''}
-                ${book.notes ? `<div class="book-notes">${book.notes}</div>` : ''}
-                ${book.page_count ? `<p>Pages: ${book.page_count}</p>` : ''}
-                ${book.average_rating ? `<p>Google Books Rating: ${book.average_rating}/5</p>` : ''}
+                ${book.description ? `<div class="book-description"><p>${book.description}</p></div>` : ''}
+                ${book.notes ? `<div class="book-notes"><p>${book.notes}</p></div>` : ''}
+                ${book.quote ? `<div class="book-quote"><p>"${book.quote}"</p></div>` : ''}
+                ${book.page_count ? `<p class="page-count">Pages: ${book.page_count}</p>` : ''}
+                ${book.average_rating ? `<p class="avg-rating">Google Books Rating: ${book.average_rating}/5</p>` : ''}
             `;
+            
+            // Set the book ID for delete functionality
             document.getElementById('deleteBookId').value = book.id;
+            
+            // Show the modal
             bookDetailsModal.style.display = "block";
         }
 
@@ -204,6 +327,198 @@
                 bookDetailsModal.style.display = "none";
             }
         });
+
+        // Search functionality
+        const searchBtn = document.getElementById('searchBtn');
+        const searchBox = document.getElementById('searchBox');
+        const searchInput = document.getElementById('searchInput');
+        const booksExhibition = document.querySelector('.books-exhibition');
+
+        searchBtn.addEventListener('click', () => {
+            searchBox.style.display = searchBox.style.display === 'none' ? 'block' : 'none';
+            searchInput.focus();
+        });
+
+        searchInput.addEventListener('input', (e) => {
+            const searchTerm = e.target.value.toLowerCase();
+            const bookEntries = document.querySelectorAll('.book-entry');
+
+            bookEntries.forEach(entry => {
+                const title = entry.querySelector('.book-title').textContent.toLowerCase();
+                const description = entry.querySelector('.book-description')?.textContent.toLowerCase() || '';
+                const quote = entry.querySelector('.book-quote')?.textContent.toLowerCase() || '';
+
+                if (title.includes(searchTerm) || description.includes(searchTerm) || quote.includes(searchTerm)) {
+                    entry.style.display = 'block';
+                } else {
+                    entry.style.display = 'none';
+                }
+            });
+        });
+
+        // Edit functionality
+        const editButtons = document.querySelectorAll('.edit-btn');
+        editButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                const modalContent = this.closest('.modal-content');
+                const bookData = JSON.parse(modalContent.closest('.modal').getAttribute('data-book'));
+                
+                // Create edit form HTML
+                const editFormHTML = `
+                    <form action="/edit" method="POST" class="edit-book-form">
+                        <input type="hidden" name="id" value="${bookData.id}">
+                        <div class="form-row">
+                            <input type="text" name="title" value="${bookData.title}" required>
+                            <input type="text" name="author" value="${bookData.author}" required>
+                        </div>
+                        <div class="form-row">
+                            <input type="number" name="rate" value="${bookData.rate}" min="0" max="10" step="0.1" required>
+                            <input type="date" name="date" value="${bookData.date ? new Date(bookData.date).toISOString().split('T')[0] : ''}" required>
+                        </div>
+                        <textarea name="notes" rows="4">${bookData.notes || ''}</textarea>
+                        <textarea name="quote" rows="2">${bookData.quote || ''}</textarea>
+                        <input type="hidden" name="cover_image" value="${bookData.cover_image || ''}">
+                        <div class="form-actions">
+                            <button type="submit" class="save-btn">Save Changes</button>
+                            <button type="button" class="cancel-btn" onclick="cancelEdit(this)">Cancel</button>
+                        </div>
+                    </form>
+                `;
+                
+                // Save current content for cancel operation
+                modalContent.setAttribute('data-original-content', modalContent.innerHTML);
+                
+                // Replace content with edit form
+                modalContent.innerHTML = editFormHTML;
+            });
+        });
+
+        // Cancel edit function
+        function cancelEdit(button) {
+            const modalContent = button.closest('.modal-content');
+            modalContent.innerHTML = modalContent.getAttribute('data-original-content');
+        }
+
+        function editBook() {
+            if (!currentBook) return;
+            
+            const content = document.getElementById('bookDetailsContent');
+            const editFormHTML = `
+                <form action="/edit" method="POST" class="edit-book-form">
+                    <input type="hidden" name="id" value="${currentBook.id}">
+                    <div class="form-group">
+                        <label for="title">Title:</label>
+                        <input type="text" id="title" name="title" value="${currentBook.title}" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="author">Author:</label>
+                        <input type="text" id="author" name="author" value="${currentBook.author || ''}" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="rate">Rating (0-10):</label>
+                        <input type="number" id="rate" name="rate" value="${currentBook.rate || ''}" min="0" max="10" step="0.1" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="date">Date Read:</label>
+                        <input type="date" id="date" name="date" value="${currentBook.date ? new Date(currentBook.date).toISOString().split('T')[0] : ''}" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="notes">Notes:</label>
+                        <textarea id="notes" name="notes" rows="4">${currentBook.notes || ''}</textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="quote">Quote:</label>
+                        <textarea id="quote" name="quote" rows="2">${currentBook.quote || ''}</textarea>
+                    </div>
+                    <input type="hidden" name="cover_image" value="${currentBook.cover_image || ''}">
+                    <div class="form-actions">
+                        <button type="submit" class="save-btn">Save Changes</button>
+                        <button type="button" class="cancel-btn" onclick="cancelEdit()">Cancel</button>
+                    </div>
+                </form>
+            `;
+            content.innerHTML = editFormHTML;
+        }
+
+        function cancelEdit() {
+            // Re-display the book details
+            showBookDetails(document.querySelector(`.book-entry[data-book*='"id":${currentBook.id}']`));
+        }
+
+        function showEditForm(book) {
+            console.log('Showing edit form for book:', book); // Debug log
+            const editFormHTML = `
+                <form id="editBookForm" class="edit-book-form">
+                    <input type="hidden" name="id" value="${book.id}">
+                    <div class="form-group">
+                        <label for="title">Title:</label>
+                        <input type="text" id="title" name="title" value="${book.title || ''}" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="author">Author:</label>
+                        <input type="text" id="author" name="author" value="${book.author || ''}" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="rate">Rating (0-10):</label>
+                        <input type="number" id="rate" name="rate" value="${book.rate || ''}" min="0" max="10" step="0.1" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="date">Date Read:</label>
+                        <input type="date" id="date" name="date" value="${book.date ? new Date(book.date).toISOString().split('T')[0] : ''}" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="notes">Notes:</label>
+                        <textarea id="notes" name="notes" rows="4">${book.notes || ''}</textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="quote">Quote:</label>
+                        <textarea id="quote" name="quote" rows="2">${book.quote || ''}</textarea>
+                    </div>
+                    <input type="hidden" name="cover_image" value="${book.cover_image || ''}">
+                    <div class="form-actions">
+                        <button type="submit" class="save-btn">Save Changes</button>
+                        <button type="button" class="cancel-btn" onclick="cancelEdit()">Cancel</button>
+                    </div>
+                </form>
+            `;
+            
+            bookDetailsContent.innerHTML = editFormHTML;
+            modalActions.style.display = 'none';
+
+            // Add submit event listener to the form
+            const editForm = document.getElementById('editBookForm');
+            editForm.addEventListener('submit', async function(e) {
+                e.preventDefault();
+                const formData = new FormData(editForm);
+                const data = Object.fromEntries(formData.entries());
+                
+                try {
+                    const response = await fetch('/edit', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(data)
+                    });
+                    
+                    if (response.ok) {
+                        window.location.reload();
+                    } else {
+                        throw new Error('Failed to update book');
+                    }
+                } catch (error) {
+                    console.error('Error updating book:', error);
+                    alert('Failed to update book. Please try again.');
+                }
+            });
+        }
+
+        function cancelEdit() {
+            if (currentBook) {
+                showBookDetails(document.querySelector(`[data-book*='"id":${currentBook.id}']`));
+                modalActions.style.display = 'flex';
+            }
+        }
 
         window.onclick = function(event) {
             if (event.target == addBookModal) {

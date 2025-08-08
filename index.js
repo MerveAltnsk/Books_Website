@@ -13,37 +13,27 @@ const PORT = 3000;
 
 // Middleware setup
 app.use(bodyParser.urlencoded({ extended: true }));
+app.use(bodyParser.json());
 app.use(express.static('public'));
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 
-// Function to fetch book details from Open Library API
+// Function to fetch book details and generate a cover image URL
 async function fetchBookDetails(title, author) {
     try {
-        const query = `${title} ${author}`.trim();
-        const response = await axios.get(`https://openlibrary.org/search.json?q=${encodeURIComponent(query)}`);
+        // Generate a unique but consistent image for each book using Unsplash source
+        const imageUrl = `https://source.unsplash.com/800x1200/?dark,${encodeURIComponent(title.split(' ')[0])},mystical`;
         
-        if (response.data.docs && response.data.docs.length > 0) {
-            const book = response.data.docs[0];
-            let coverImage = null;
-            
-            // Get cover image if available
-            if (book.cover_i) {
-                coverImage = `https://covers.openlibrary.org/b/id/${book.cover_i}-L.jpg`;
-            }
-            
-            return {
-                title: book.title,
-                author: book.author_name ? book.author_name[0] : author,
-                description: book.description || '',
-                coverImage: coverImage,
-                publishedDate: book.first_publish_year ? book.first_publish_year.toString() : null,
-                pageCount: book.number_of_pages_median || null,
-                categories: book.subject || [],
-                averageRating: book.ratings_average || null
-            };
-        }
-        return null;
+        return {
+            title: title,
+            author: author || 'Unknown',
+            description: '',
+            coverImage: imageUrl,
+            publishedDate: null,
+            pageCount: null,
+            categories: [],
+            averageRating: null
+        };
     } catch (error) {
         console.error('Error fetching book details:', error);
         return null;
@@ -203,7 +193,7 @@ try {
             book.title,
             book.description,
             book.quote,
-            `https://covers.openlibrary.org/b/isbn/${book.title.replace(/\s+/g, '')}-L.jpg`,
+            `https://raw.githubusercontent.com/MerveAltnsk/Books_Website/main/public/assets/covers/${book.title.toLowerCase().replace(/[^a-z0-9]/g, '-')}.jpg`,
             bookDetails?.author || 'Unknown',
             bookDetails?.publishedDate || null,
             bookDetails?.pageCount || null,
@@ -227,6 +217,18 @@ app.get("/", async (req, res) => {
         console.log("Fetching books from database...");
         const result = await db.query("SELECT * FROM books ORDER BY title");
         books = result.rows || [];  // Ensure books is always an array
+        
+        // Update any books that don't have cover images
+        for (const book of books) {
+            if (!book.cover_image) {
+                book.cover_image = `https://source.unsplash.com/800x1200/?book,dark,${encodeURIComponent(book.title.split(' ')[0])}`;
+                await db.query(
+                    'UPDATE books SET cover_image = $1 WHERE id = $2',
+                    [book.cover_image, book.id]
+                );
+            }
+        }
+        
         console.log(`Found ${books.length} books in the database`);
         // Log the first book's details to check the cover_image field
         if (books.length > 0) {
@@ -234,6 +236,7 @@ app.get("/", async (req, res) => {
                 title: books[0].title,
                 cover_image: books[0].cover_image
             });
+        }
         res.render("index.ejs", { 
             books,
             error: null,
@@ -342,6 +345,23 @@ app.post("/add", async (req, res) => {
             error: "Error adding book. Please try again.",
             success: null
         });
+    }
+});
+
+// POST edit book
+app.post("/edit", async (req, res) => {
+    try {
+        const { id, title, author, rate, date, notes, quote, cover_image } = req.body;
+        await db.query(
+            `UPDATE books 
+             SET title = $1, author = $2, rate = $3, date = $4, notes = $5, quote = $6, cover_image = $7
+             WHERE id = $8`,
+            [title, author, rate, date, notes, quote, cover_image, id]
+        );
+        res.redirect('/?success=Book updated successfully');
+    } catch (error) {
+        console.error('Error updating book:', error);
+        res.redirect('/?error=Failed to update book');
     }
 });
 
