@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Books Collection</title>
+    <link rel="stylesheet" href="/stylesheets/new-styles.css">
+    <link rel="stylesheet" href="/stylesheets/book-covers.css">
+</head>
+<body>
+    <nav class="nav-container">
+        <div class="nav-bar">
+            <a href="/" class="logo">My Journey</a>
+            <div class="nav-links">
+                <button id="searchBtn" class="nav-button">Search</button>
+                <button id="addBookBtn" class="nav-button">Add to Journey</button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Add Book Modal -->
+    <div id="addBookModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>Add to Your Journey</h2>
+            <form action="/add" method="POST" class="add-book-form">
+                <div class="search-book-section">
+                    <input type="text" id="searchBookApi" placeholder="Search book title or ISBN...">
+                    <div id="searchResults" class="search-results"></div>
+                </div>
+                <div class="manual-entry-section">
+                    <h3>or add manually</h3>
+                    <div class="form-row">
+                        <input type="text" name="title" placeholder="Book Title" required>
+                        <input type="text" name="author" placeholder="Author" required>
+                    </div>
+                    <div class="form-row">
+                        <input type="number" name="rate" placeholder="Your Rating (0-10)" min="0" max="10" step="0.1" required>
+                        <input type="date" name="date" required>
+                    </div>
+                    <textarea name="notes" placeholder="What did this book mean to you?" rows="4"></textarea>
+                    <input type="hidden" name="cover_image" id="coverImage">
+                    <input type="hidden" name="page_count" id="pageCount">
+                    <input type="hidden" name="average_rating" id="averageRating">
+                    <button type="submit" class="submit-btn">Add to Journey</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <main class="main-content">
+        <% if (typeof error !== 'undefined' && error) { %>
+            <div class="error-message">
+                <%= error %>
+            </div>
+        <% } %>
+        
+        <% if (typeof success !== 'undefined' && success) { %>
+            <div class="success-message">
+                <%= success %>
+            </div>
+        <% } %>
+
+    <main class="main-content">
+        <% if (typeof error !== 'undefined' && error) { %>
+            <div class="error-message"><%= error %></div>
+        <% } %>
+        <% if (typeof success !== 'undefined' && success) { %>
+            <div class="success-message"><%= success %></div>
+        <% } %>
+
+        <h1 class="collection-title">God Named Devil</h1>
+        <h2 class="collection-subtitle">New series collection by Doberboy</h2>
+
+    <section id="browse" class="browse-section">
+        <div class="books-exhibition">
+            <% books.forEach((book, index) => { %>
+                <div class="book-entry" onclick="showBookDetails(this)" data-book='<%= JSON.stringify(book) %>'>
+                    <div class="book-number"><%= String(index + 1).padStart(2, '0') %></div>
+                    <div class="book-content">
+                        <h2 class="book-title"><%= book.title %></h2>
+                        <div class="book-layout">
+                            <div class="book-image">
+                                <img 
+                                    src="https://covers.openlibrary.org/b/title/<%= book.title.toLowerCase().replace(/[^a-z0-9]/g, '+') %>-L.jpg" 
+                                    alt="Cover of <%= book.title %>"
+                                    onerror="this.onerror=null; this.style.display='none'; this.nextElementSibling.style.display='flex';"
+                                >
+                                <div class="cover-placeholder" style="display: none;">
+                                    <div class="cover-content">
+                                        <div class="book-icon">📚</div>
+                                        <h3><%= book.title %></h3>
+                                        <p class="author"><%= book.author || 'Unknown Author' %></p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="book-description">
+                                <%= book.notes || book.description %>
+                                <% if (book.quote) { %>
+                                    <div class="book-quote">
+                                        "<%= book.quote %>"
+                                    </div>
+                                <% } %>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            <% }); %>
+        </div>
+
+        <!-- Book Details Modal -->
+        <div id="bookDetailsModal" class="modal">
+            <div class="modal-content">
+                <span class="close">&times;</span>
+                <div id="bookDetailsContent">
+                    <!-- Content will be populated by JavaScript -->
+                </div>
+                <div class="modal-actions">
+                    <button class="edit-btn">Edit</button>
+                    <form action="/delete" method="POST" style="display: inline;">
+                        <input type="hidden" name="bookId" id="deleteBookId">
+                        <button type="submit" class="delete-btn">Delete</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // Google Books API integration
+        const searchBookApi = document.getElementById('searchBookApi');
+        const searchResults = document.getElementById('searchResults');
+        
+        let searchTimeout;
+        searchBookApi.addEventListener('input', (e) => {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(() => {
+                const query = e.target.value;
+                if (query.length >= 3) {
+                    fetch(`https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(query)}`)
+                        .then(response => response.json())
+                        .then(data => {
+                            searchResults.innerHTML = '';
+                            data.items?.slice(0, 5).forEach(book => {
+                                const div = document.createElement('div');
+                                div.className = 'search-result-item';
+                                div.innerHTML = `
+                                    <img src="${book.volumeInfo.imageLinks?.thumbnail || ''}" alt="Cover">
+                                    <div class="book-info">
+                                        <h4>${book.volumeInfo.title}</h4>
+                                        <p>${book.volumeInfo.authors?.join(', ') || 'Unknown author'}</p>
+                                    </div>
+                                `;
+                                div.addEventListener('click', () => {
+                                    document.getElementsByName('title')[0].value = book.volumeInfo.title;
+                                    document.getElementsByName('author')[0].value = book.volumeInfo.authors?.[0] || '';
+                                    document.getElementById('coverImage').value = book.volumeInfo.imageLinks?.thumbnail || '';
+                                    document.getElementById('pageCount').value = book.volumeInfo.pageCount || '';
+                                    document.getElementById('averageRating').value = book.volumeInfo.averageRating || '';
+                                    searchResults.innerHTML = '';
+                                });
+                                searchResults.appendChild(div);
+                            });
+                        });
+                }
+            }, 300);
+        });
+
+        // Modal functionality
+        const addBookBtn = document.getElementById('addBookBtn');
+        const addBookModal = document.getElementById('addBookModal');
+        const bookDetailsModal = document.getElementById('bookDetailsModal');
+        const closeButtons = document.getElementsByClassName('close');
+
+        addBookBtn.onclick = function() {
+            addBookModal.style.display = "block";
+        }
+
+        function showBookDetails(element) {
+            const book = JSON.parse(element.getAttribute('data-book'));
+            const content = document.getElementById('bookDetailsContent');
+            content.innerHTML = `
+                <div class="book-detail-header">
+                    <img src="${book.cover_image || ''}" alt="Cover of ${book.title}">
+                    <div class="book-info">
+                        <h2>${book.title}</h2>
+                        <p class="author">${book.author}</p>
+                        <p class="rating">Rating: ${book.rate}/10</p>
+                        <p class="date">Read on: ${new Date(book.date).toLocaleDateString()}</p>
+                    </div>
+                </div>
+                ${book.description ? `<div class="book-description">${book.description}</div>` : ''}
+                ${book.notes ? `<div class="book-notes">${book.notes}</div>` : ''}
+                ${book.page_count ? `<p>Pages: ${book.page_count}</p>` : ''}
+                ${book.average_rating ? `<p>Google Books Rating: ${book.average_rating}/5</p>` : ''}
+            `;
+            document.getElementById('deleteBookId').value = book.id;
+            bookDetailsModal.style.display = "block";
+        }
+
+        Array.from(closeButtons).forEach(button => {
+            button.onclick = function() {
+                addBookModal.style.display = "none";
+                bookDetailsModal.style.display = "none";
+            }
+        });
+
+        window.onclick = function(event) {
+            if (event.target == addBookModal) {
+                addBookModal.style.display = "none";
+            }
+            if (event.target == bookDetailsModal) {
+                bookDetailsModal.style.display = "none";
+            }
+        }
+    </script>
+</body>
+</html>
+    </section>
+    </main>
+
+    <script>
+        function editBook(button) {
+            const bookData = JSON.parse(button.getAttribute('data-book'));
+            // TODO: Implement edit functionality
+            console.log('Edit book:', bookData);
+        }
+    </script>
+</body>
+</html>
