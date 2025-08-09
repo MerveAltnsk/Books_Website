@@ -233,11 +233,11 @@ body {
 .book-image {
     position: relative;
     width: 100%;
-    height: 400px;
+    height: 100%;
     display: flex;
     justify-content: center;
-    align-items: center;
-    perspective: 1500px;
+    object-fit: contain; /* resmi tamamen gösterir, boşluk bırakabilir */
+    background-color: #000; /* boşluk varsa arka plan rengi */
 }
 
 .book-cover {
