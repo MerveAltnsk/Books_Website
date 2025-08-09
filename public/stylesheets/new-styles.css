@@ -37,22 +37,31 @@ body {
 }
 
 .nav-button {
-    background: none;
-    border: 1px solid var(--accent-color);
-    color: var(--accent-color);
+    background: rgba(156, 139, 122, 0.15); /* accent renkli cam efekti */
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1.5px solid rgba(156, 139, 122, 0.4); /* accent rengine uygun şeffaf kenar */
+    color: white;
     font-size: 0.9rem;
+    font-weight: 500;
     cursor: pointer;
     padding: 0.75rem 1.5rem;
     transition: all 0.3s ease;
     text-transform: uppercase;
     letter-spacing: 1px;
+    border-radius: 50px;
     margin-left: 1rem;
+    box-shadow: 0 4px 18px rgba(0, 0, 0, 0.1);
 }
 
 .nav-button:hover {
-    background-color: var(--accent-color);
-    color: var(--background-dark);
+    background: rgba(156, 139, 122, 0.25);
+    border-color: rgba(156, 139, 122, 0.6);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.15);
+    color: white;
 }
+
 
 .main-content {
     margin-top: 80px;

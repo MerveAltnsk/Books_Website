@@ -23,19 +23,28 @@
 }
 
 .nav-button {
-    padding: 8px 16px;
-    border-radius: 4px;
+    padding: 10px 22px;
+    border-radius: 50px;
     cursor: pointer;
     font-size: 1em;
-    border: none;
-    background-color: var(--accent-color);
-    color: var(--text-dark);
-    transition: opacity 0.2s;
+    font-weight: 500;
+    border: 1.5px solid rgba(156, 139, 122, 0.4); /* accent tonlu kenarlık */
+    background: rgba(156, 139, 122, 0.15); /* accent rengin frosted hali */
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    color: white;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
 }
 
 .nav-button:hover {
-    opacity: 0.9;
+    background: rgba(156, 139, 122, 0.25);
+    border-color: rgba(156, 139, 122, 0.6);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 28px rgba(0, 0, 0, 0.2);
+    opacity: 1;
 }
+
 
 .search-container {
     position: relative;

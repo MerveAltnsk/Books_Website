@@ -5,13 +5,16 @@
     --text-light: #ffffff;
     --text-dark: #1a1a1a;
     --background-light: #f5f5f5;
+    --accent-color: #007bff;
+    --primary-color: #4a148c;     /* Nav arka plan rengi (örnek) */
+    --accent-color: #ff5722;      /* Hover ve vurgu rengi */
 }
 
 body {
     font-family: 'Helvetica Neue', Arial, sans-serif;
     margin: 0;
     padding: 0;
-    background-color: var(--background-light);
+    background: linear-gradient(180deg, #3a1c71, #d76d77, #ffaf7b); /* colorful dark bg */
     color: var(--text-dark);
 }
 
@@ -35,10 +38,22 @@ body {
 
 .logo {
     color: var(--text-light);
-    font-size: 1.5rem;
+    font-size: 1.75rem;           /* Biraz daha büyük ve dikkat çekici */
+    font-weight: 500;             /* Daha profesyonel ve okunaklı */
     text-decoration: none;
-    font-weight: 300;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; /* Modern ve temiz font ailesi */
+    letter-spacing: 0.05em;       /* Harfler arası boşluk hafifçe arttırıldı */
+    transition: color 0.3s ease;  /* Hover için yumuşak geçiş */
+    z-index: 20;
 }
+
+.logo:hover,
+.logo:focus {
+    color: var(--accent-color);   /* Hover ve focus durumunda vurgu rengi */
+    text-decoration: underline;   /* Profesyonel ve kullanışlı hover efekti */
+    cursor: pointer;
+}
+
 
 .nav-links {
     display: flex;
@@ -139,13 +154,28 @@ body {
 }
 
 .add-book-form button {
-    background: #007bff;
-    color: white;
-    border: none;
-    padding: 10px 20px;
-    border-radius: 4px;
-    cursor: pointer;
-}
+      background: rgba(255, 255, 255, 0.1); /* translucent white */
+      color: white;
+      border: 1.5px solid rgba(255, 255, 255, 0.4); /* frosted border */
+      padding: 14px 32px;
+      border-radius: 50px;
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      cursor: pointer;
+      font-size: 18px;
+      font-weight: 500;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 30px rgba(0, 0, 0, 0.2);
+    }
+
+    .add-book-form button:hover {
+      background: rgba(255, 255, 255, 0.2);
+      border-color: rgba(255, 255, 255, 0.6);
+      transform: translateY(-3px);
+      box-shadow: 0 6px 40px rgba(0, 0, 0, 0.25);
+    }
+
+
 
 .search-sort-container {
     display: flex;
@@ -201,18 +231,46 @@ body {
 }
 
 .book-actions button {
-    padding: 5px 10px;
-    border: none;
-    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+    border: 1.5px solid rgba(255, 255, 255, 0.3);
+    border-radius: 50px;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
     cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    padding: 10px 18px;
+    transition: all 0.3s ease;
+    box-shadow: 0 3px 12px rgba(0, 0, 0, 0.15);
 }
 
+.book-actions button:hover {
+    background: rgba(255, 255, 255, 0.2);
+    border-color: rgba(255, 255, 255, 0.5);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.2);
+}
+
+/* Optional: Add icon colors or light tints to differentiate */
 .edit-btn {
-    background: #28a745;
-    color: white;
+    /* Greenish tint for edit */
+    background: rgba(40, 167, 69, 0.15);
+    border-color: rgba(40, 167, 69, 0.3);
+}
+
+.edit-btn:hover {
+    background: rgba(40, 167, 69, 0.25);
+    border-color: rgba(40, 167, 69, 0.5);
 }
 
 .delete-btn {
-    background: #dc3545;
-    color: white;
+    /* Reddish tint for delete */
+    background: rgba(220, 53, 69, 0.15);
+    border-color: rgba(220, 53, 69, 0.3);
+}
+
+.delete-btn:hover {
+    background: rgba(220, 53, 69, 0.25);
+    border-color: rgba(220, 53, 69, 0.5);
 }
